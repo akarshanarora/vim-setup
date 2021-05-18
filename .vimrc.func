@@ -1,0 +1,870 @@
+nnoremap <a-j> :call Move_line_selection("bottom",0)<CR>
+vnoremap <a-j> :call Move_line_selection("bottom",1)<CR>
+nnoremap <a-k> :call Move_line_selection("top",0)<CR>
+vnoremap <a-k> :call Move_line_selection("top",1)<CR>
+function! Move_line_selection(dir,cond) range
+    if a:cond==0
+        call Move_Line(a:dir)
+        return
+    endif
+
+    if a:cond==1
+        let l:i=0
+        let l:top_line=line("'<")
+        let l:bot_line=line("'>")
+        let l:total_line_count=l:bot_line-l:top_line+1
+
+        if a:dir=="bottom"
+            let l:line_counter=l:bot_line
+        endif
+
+        if a:dir=="top"
+            let l:line_counter=l:top_line
+        endif
+
+        while l:i<l:total_line_count
+            let l:cursor_pos=[0,l:line_counter,0,0]
+            call setpos(".",l:cursor_pos)
+            call Move_Line(a:dir)
+            let l:i=l:i+1
+
+            if a:dir=="bottom"
+                let l:line_counter=l:line_counter-1
+            endif
+            
+            if a:dir=="top"
+                let l:line_counter=l:line_counter+1
+            endif
+        endwhile
+
+        if a:dir == "bottom"
+            let l:cursor_pos=[0,l:top_line+1,0,0]
+            call setpos(".",l:cursor_pos)
+            silent! normal! V
+            let l:cursor_pos=[0,l:bot_line+1,0,0]
+            call setpos(".",l:cursor_pos)
+        endif
+        if a:dir == "top"
+            let l:cursor_pos=[0,l:top_line-1,0,0]
+            call setpos(".",l:cursor_pos)
+            silent! normal! V
+            let l:cursor_pos=[0,l:bot_line-1,0,0]
+            call setpos(".",l:cursor_pos)
+        endif
+    endif
+endfunction
+
+function! Move_Line(dir) range
+    let l:cl=line(".")
+    
+    if l:cl==1 && a:dir=="top"
+        return
+    endif
+
+    let l:up=l:cl-1
+    let l:bottom=l:cl+1
+
+    let l:cld=getline(l:cl)
+    if (a:dir=="top")
+        let l:mld=getline(l:up)
+        let l:ml=l:up
+    endif
+
+    if (a:dir=="bottom")
+        let l:mld=getline(l:bottom)
+        let l:ml=l:bottom
+    endif
+    
+    call setline(l:cl,l:mld)
+    call setline(l:ml,l:cld)
+    
+    let l:cursor_pos = [0,l:ml,0,0]
+    call setpos(".",l:cursor_pos)
+endfunction
+
+nnoremap <c-h> :call MVBS("left",0)<CR>
+vnoremap <c-h> :call MVBS("left",1)<CR>
+nnoremap <c-l> :call MVBS("right",0)<CR>
+vnoremap <c-l> :call MVBS("right",1)<CR>
+nnoremap <c-j> :call MVBS("bottom",0)<CR>
+vnoremap <c-j> :call MVBS("bottom",1)<CR>
+nnoremap <c-k> :call MVBS("top",0)<CR>
+vnoremap <c-k> :call MVBS("top",1)<CR>
+function! MVBS(dir,cond) range          "move visual block sideways/seasaw
+
+    if a:cond==0
+        let l:cols=virtcol(".")
+        let l:cursor_pos=getpos(".")
+        if (l:cols==1 && a:dir=="left") || (line(".")==1 && a:dir=="top")
+            call setpos(".",l:cursor_pos)
+        else
+            let l:cole=l:cols
+            call MVS(a:dir,l:cols,l:cole)
+            return
+        endif
+    endif
+    
+    if a:cond==1
+        
+        let l:i=0 
+        let l:top_line=line("'<")
+        let l:bot_line=line("'>")
+        let l:cols=virtcol("'<")
+
+        "if l:cols==1 && a:dir=="left"
+        "    silent! normal! gv
+        "    return 
+        "endif
+
+        if l:top_line==1 && a:dir=="top"
+            silent! normal! gv
+            return
+        endif
+
+            let l:cole=virtcol("'>")
+            if l:cole<l:cols
+                let l:temp=l:cole
+                let l:cole=l:cols
+                let l:cols=l:temp
+            endif
+            let l:cole=l:cole-1
+            if l:cole<=l:cols-1
+                let l:cole=l:cols
+            endif
+
+            if a:dir=="left" || a:dir=="right" || a:dir=="top"
+                let l:line_counter=l:top_line
+            else
+                let l:line_counter=l:bot_line
+            endif
+
+            let l:total_line_count=l:bot_line-l:top_line+1
+            while l:i<l:total_line_count
+               let l:cursor_pos=[0,l:line_counter,l:cols,0]
+               call setpos(".",l:cursor_pos)
+               call MVS(a:dir,l:cols,l:cole)
+               let l:i=l:i+1
+
+               if a:dir=="left" || a:dir=="right" || a:dir=="top"
+                let l:line_counter=l:line_counter+1 
+               else
+                let l:line_counter=l:line_counter-1 
+               endif
+            endwhile
+    endif         
+
+    if a:cond==1
+        if l:cols==1 && a:dir=="left" && strpart(getline("."),0,1) != " "
+            silent! normal! gv
+        else
+            if a:dir=="right"
+                let l:cursor_pos_ns=[0,l:top_line,l:cols+1,0]
+                call setpos("'<",l:cursor_pos_ns)
+                let l:cursor_pos_ne=[0,l:bot_line,l:cole+2,0]
+                call setpos("'>",l:cursor_pos_ne)
+            endif
+
+            if a:dir=="left"
+                let l:cursor_pos_ns=[0,l:top_line,l:cols-1,0]
+                call setpos("'<",l:cursor_pos_ns)
+                let l:cursor_pos_ne=[0,l:bot_line,l:cole,0]
+                call setpos("'>",l:cursor_pos_ne)
+            endif
+
+            if a:dir=="top"
+               let l:cursor_pos_ns=[0,l:top_line-1,l:cols,0]
+               call setpos("'<",l:cursor_pos_ns)
+               let l:cursor_pos_ne=[0,l:bot_line-1,l:cole+1,0]
+               call setpos("'>",l:cursor_pos_ne) 
+            endif
+
+            if a:dir=="bottom"
+               let l:cursor_pos_ns=[0,l:top_line+1,l:cols,0]
+               call setpos("'<",l:cursor_pos_ns)
+               let l:cursor_pos_ne=[0,l:bot_line+1,l:cole+1,0]
+               call setpos("'>",l:cursor_pos_ne) 
+            endif
+            silent! normal! gv
+        endif
+    endif
+
+endfunction
+
+function! MVS(dir,cols,cole) range  "move visual selection
+    let l:cols=a:cols
+    let l:cole=a:cole
+    
+    let l:cl="."
+    let l:cln=line(l:cl)
+    let l:up=l:cln-1
+    let l:bottom=l:cln+1
+    let l:cld=getline(l:cl)
+
+    if a:dir=="left" || a:dir=="right"
+        if l:cols==1 && strpart(l:cld,0,1)==" " && a:dir=="left"
+            let l:cols=l:cols+1
+        endif
+
+        let l:linelength=strlen(l:cld)
+        let l:collength=l:cole-l:cols+1
+        let l:colcd=strpart(l:cld,l:cols-1,l:collength)
+        let l:colld=strpart(l:cld,0,l:cols-1)
+        let l:colrd=strpart(l:cld,l:cole,l:linelength-l:cole)
+        let l:colldlength=strlen(l:colld)
+        
+        if a:dir=="right"
+            let l:shiftchar=strpart(l:colrd,0,1)
+            if strlen(l:shiftchar)==0
+                let l:shiftchar=" "
+            endif
+            let l:colrd=strpart(l:cld,l:cole+1,l:linelength-l:cole)
+            let l:output= l:colld . l:shiftchar . l:colcd . l:colrd
+        endif
+
+        if a:dir=="left"
+            let l:shiftchar=strpart(l:colld,l:colldlength-1,1)
+            let l:colld=strpart(l:cld,0,l:colldlength-1)
+            let l:output= l:colld . l:colcd . l:shiftchar . l:colrd
+        endif
+        call setline(".",l:output)
+
+        if a:dir=="left"
+            let l:cursor_pos=[0,l:cln,l:cols-1,0]
+        endif
+
+        if a:dir=="right"
+            let l:cursor_pos=[0,l:cln,l:cole+1,0]
+        endif
+        call setpos(".",l:cursor_pos)
+    endif
+
+    if a:dir=="top" || a:dir=="bottom"
+        if a:dir=="top"
+            let l:exl=l:up
+        endif
+        if a:dir=="bottom"
+            let l:exl=l:bottom
+        endif
+
+        let l:cld=getline(l:cl)
+        let l:linelength=strlen(l:cld)
+        let l:collength=l:cole-l:cols+1
+        let l:colcd=strpart(l:cld,l:cols-1,l:collength)
+        let l:colld=strpart(l:cld,0,l:cols-1)
+        let l:colrd=strpart(l:cld,l:cole,l:linelength-l:cole)
+
+        let l:exld=getline(l:exl)
+        let l:exlinelength=strlen(l:exld)
+        let l:excollength=l:cole-l:cols+1
+        let l:excolcd=strpart(l:exld,l:cols-1,l:excollength)
+        let l:excolld=strpart(l:exld,0,l:cols-1)
+        let l:excolrd=strpart(l:exld,l:cole,l:exlinelength-l:cole)
+        
+        if strlen(l:excolcd) < strlen(l:colcd)
+            let l:excolcd=l:excolcd.repeat(" ",strlen(l:colcd)-strlen(l:excolcd))
+        endif
+        if strlen(l:excolld) < strlen(l:colld)
+            let l:excolld=l:excolld.repeat(" ",strlen(l:colld)-strlen(l:excolld))
+        endif
+
+        let l:ncld=l:colld . l:excolcd . l:colrd
+        let l:nexld=l:excolld . l:colcd . l:excolrd
+
+        call setline(l:cl,l:ncld)
+        call setline(l:exl,l:nexld)
+
+        if a:dir=="top"
+            let l:cursor_pos=[0,l:cln-1,l:cols,0]
+        endif
+
+        if a:dir=="bottom"
+            let l:cursor_pos=[0,l:cln+1,l:cols,0]
+        endif
+        call setpos(".",l:cursor_pos)
+
+    endif
+
+endfunction
+function! RefBuffer() range
+    let l:data=split(getline(1),":")[1]
+    call setline(1, 'Command:' .l:data)
+    call setline(2,substitute(getline(1),'.','=','g'))
+    call setpos(".",[0,3,0,0]) 
+    silent! normal! dG
+    execute '$read !'. l:data
+endfunction
+
+function! MoveToBuffer(bufName,orgPos) range
+
+    let l:bufname=a:bufName
+    let l:wnr=bufwinnr(bufnr("l:bufname"))
+    let l:bln=split(getline("."),":")[0]
+    execute l:wnr . 'wincmd w'
+    call setpos(".",[0,l:bln,0,0])
+    silent! normal! zt
+    nnoremap <silent> <buffer> ,t :call setpos(".",g:currPos)<ENTER>
+
+endfunction
+
+command! -complete=shellcmd -nargs=+ Grep call s:VimGrep(<f-args>)
+function! s:VimGrep(...) range
+    let l:srchString=join(a:000[1:]," ")
+    let l:args=a:000[0]
+    call s:RunShellCommand("grep -n ".l:args." ".l:srchString." %")
+endfunction
+
+command! -complete=shellcmd -nargs=+ Shell call s:RunShellCommand(<q-args>)
+function! s:RunShellCommand(cmdline)
+  let expanded_cmdline = a:cmdline
+  for part in split(a:cmdline, ' ')
+     if part[0] =~ '\v[%#<]'
+        let expanded_part = fnameescape(expand(part))
+        let expanded_cmdline = substitute(expanded_cmdline, part, expanded_part, '')
+     endif
+  endfor
+
+  let g:curBuf=bufname("%")
+  let g:currPos=getpos(".")
+  let l:wnr=bufwinnr(bufnr("ShellScratch"))
+  if l:wnr!=-1
+      silent! normal! bdelete ShellScratch
+  endif
+  vertical topleft new 
+  setlocal buftype=nofile bufhidden=wipe nobuflisted noswapfile nowrap
+  "call setline(1, 'You entered:    ' . a:cmdline)
+  "call setline(2, 'Expanded Form:  ' .expanded_cmdline)
+  "call setline(3,substitute(getline(2),'.','=','g'))
+  
+  call setline(1, 'Command:  ' .expanded_cmdline)
+  call setline(2,substitute(getline(1),'.','=','g'))
+
+  execute '$read !'. expanded_cmdline
+  "setlocal nomodifiable
+  nnoremap <silent> <buffer> <tab> :call MoveToBuffer(g:curBuf, g:currPos)<ENTER>
+  nnoremap <silent> <buffer> <F5>  :call RefBuffer()<ENTER>
+endfunction
+
+nnoremap <silent> <Leader>ld :call Linedifference("'a","'b")<ENTER>
+vnoremap <silent> <Leader>ld :call VisualSelLineDiff()<ENTER>
+function! VisualSelLineDiff() range
+    let cursor_col_pos = getpos("'>")[1]
+    let cursor_pos = [0,cursor_col_pos,0,0]
+    let s:linedifference = Linedifference("'<","'>")
+    call setpos(".",cursor_pos)
+endfunction
+
+function! Linedifference(topline, bottomline)
+    let s:topline = line(a:topline)
+    let s:bottomline = line(a:bottomline)
+    let s:linedifference = s:Difference(s:topline,s:bottomline)
+    echo "topline:"s:topline "  bottomline:"s:bottomline "  diff:"s:linedifference
+    return a:var2-a:var1+1
+endfunction
+
+"A mapping to make a backup of the current file.
+nnoremap <silent> <Leader>ba :<C-U>call WriteBackup()<CR>
+function! WriteBackup()
+  let s:fname = expand('%:p') . '__' . strftime('%Y_%m_%d_%H.%M.%S')
+  silent execute 'write' s:fname
+  echomsg 'Wrote' s:fname
+endfunction
+
+nnoremap <silent> <Leader>c :call Addcomm()<CR>
+function! Addcomm()
+    let s:count = 12
+
+    let s:comm_start_stop={
+       \ "tcl"    :['#','#'],
+       \ "python" :['#','#'],
+       \ "tcsh"   :['#','#'],
+       \ "bash"   :['#','#'],
+       \ "sh"     :['#','#'],
+       \ "skill"  :[';',';'],
+       \ "vim"    :['"','"']
+       \ }
+    let s:start_char= eval("s:comm_start_stop.".&ft)[0]
+    let s:stop_char= eval("s:comm_start_stop.".&ft)[1]
+    let s:rep_char="\="
+    let s:user_cmnt = inputdialog("enter comment: ".&ft )
+    if s:user_cmnt!=""
+        let s:cmnthf = s:start_char.repeat(s:rep_char,s:count)."\[".s:user_cmnt."\]".repeat(s:rep_char,s:count).s:stop_char
+        call setline(".",s:cmnthf)
+    endif
+endfunction
+
+function! Pydoc()
+    l:cl = line(".")
+    call setpos(".", [0, l:cl, 4, 0])
+endfunction
+
+"autocmd BufNewFile,BufRead * :call Log_gvim_open_files()
+"function! Log_gvim_open_files()
+"    let s:filepath = expand('%:p')
+"    let s:timestamp = "\[". strftime('%c') . "\] "
+"    e /home/nxa11705/.gvim_open_files
+"    setlocal noswapfile nowrap 
+"    s/$/\r/g
+"    call setline(".", s:timestamp . s:filepath)
+"    write!
+"    :bdelete 
+"endfunction
+
+nnoremap <silent> <a-j> :call Move_line_selection("bottom",0)<CR>
+nnoremap <silent> <a-j> :call Move_line_selection("bottom",1)<CR>
+vnoremap <silent> <a-k> :call Move_line_selection("top",1)<CR>
+vnoremap <silent> <a-k> :call Move_line_selection("top",0)<CR>        
+function! Move_line_selection(dir,cond) range                         
+    if a:cond==0
+        call Move_Line(a:dir)
+        return
+    endif
+
+    if a:cond==1
+        let l:i=0
+        let l:top_line=line("'<")
+        let l:bot_line=line("'>")
+        let l:total_line_count=l:bot_line-l:top_line+1
+
+        if a:dir=="bottom"
+            let l:line_counter=l:bot_line
+        endif
+
+        if a:dir=="top"
+            let l:line_counter=l:top_line
+        endif
+
+        while l:i<l:total_line_count
+            let l:cursor_pos=[0,l:line_counter,0,0]
+            call setpos(".",l:cursor_pos)
+            call Move_Line(a:dir)
+            let l:i=l:i+1
+
+            if a:dir=="bottom"
+                let l:line_counter=l:line_counter-1
+            endif
+            
+            if a:dir=="top"
+                let l:line_counter=l:line_counter+1
+            endif
+        endwhile
+
+        if a:dir == "bottom"
+            let l:cursor_pos=[0,l:top_line+1,0,0]
+            call setpos(".",l:cursor_pos)
+            silent! normal! V
+            let l:cursor_pos=[0,l:bot_line+1,0,0]
+            call setpos(".",l:cursor_pos)
+        endif
+        if a:dir == "top"
+            let l:cursor_pos=[0,l:top_line-1,0,0]
+            call setpos(".",l:cursor_pos)
+            silent! normal! V
+            let l:cursor_pos=[0,l:bot_line-1,0,0]
+            call setpos(".",l:cursor_pos)
+        endif
+    endif
+endfunction
+
+function! Move_Line(dir) range
+    let l:cl=line(".")
+    
+    if l:cl==1 && a:dir=="top"
+        return
+    endif
+
+    let l:up=l:cl-1
+    let l:bottom=l:cl+1
+
+    let l:cld=getline(l:cl)
+    if (a:dir=="top")
+        let l:mld=getline(l:up)
+        let l:ml=l:up
+    endif
+
+    if (a:dir=="bottom")
+        let l:mld=getline(l:bottom)
+        let l:ml=l:bottom
+    endif
+    
+    call setline(l:cl,l:mld)
+    call setline(l:ml,l:cld)
+    
+    let l:cursor_pos = [0,l:ml,0,0]
+    call setpos(".",l:cursor_pos)
+endfunction
+
+nnoremap <silent> <c-h> :call MVBS("left",0)<CR>
+vnoremap <silent> <c-h> :call MVBS("left",1)<CR>
+nnoremap <silent> <c-l> :call MVBS("right",0)<CR>
+vnoremap <silent> <c-l> :call MVBS("right",1)<CR>
+nnoremap <silent> <c-j> :call MVBS("bottom",0)<CR>
+vnoremap <silent> <c-j> :call MVBS("bottom",1)<CR>
+nnoremap <silent> <c-k> :call MVBS("top",0)<CR>
+vnoremap <silent> <c-k> :call MVBS("top",1)<CR>
+function! MVBS(dir,cond) range          "move visual block sideways/seasaw
+
+    if a:cond==0
+        let l:cols=virtcol(".")
+        let l:cursor_pos=getpos(".")
+        if (l:cols==1 && a:dir=="left") || (line(".")==1 && a:dir=="top")
+            call setpos(".",l:cursor_pos)
+        else
+            let l:cole=l:cols
+            call MVS(a:dir,l:cols,l:cole)
+            return
+        endif
+    endif
+    
+    if a:cond==1
+        
+        let l:i=0 
+        let l:top_line=line("'<")
+        let l:bot_line=line("'>")
+        let l:cols=virtcol("'<")
+
+        "if l:cols==1 && a:dir=="left"
+        "    silent! normal! gv
+        "    return 
+        "endif
+
+        if l:top_line==1 && a:dir=="top"              
+            silent! normal! gv                            
+            return
+        endif
+
+            let l:cole=virtcol("'>")
+            if l:cole<l:cols
+                let l:temp=l:cole
+                let l:cole=l:cols
+                let l:cols=l:temp
+            endif
+            let l:cole=l:cole-1
+            if l:cole<=l:cols-1
+                let l:cole=l:cols
+            endif
+
+            if a:dir=="left" || a:dir=="right" || a:dir=="top"
+                let l:line_counter=l:top_line
+            else
+                let l:line_counter=l:bot_line
+            endif
+
+            let l:total_line_count=l:bot_line-l:top_line+1
+            while l:i<l:total_line_count
+               let l:cursor_pos=[0,l:line_counter,l:cols,0]
+               call setpos(".",l:cursor_pos)
+               call MVS(a:dir,l:cols,l:cole)
+               let l:i=l:i+1
+
+               if a:dir=="left" || a:dir=="right" || a:dir=="top"
+                let l:line_counter=l:line_counter+1 
+               else
+                let l:line_counter=l:line_counter-1 
+               endif
+            endwhile
+    endif         
+
+    if a:cond==1
+        if l:cols==1 && a:dir=="left" && strpart(getline("."),0,1) != " "
+            silent! normal! gv
+        else
+            if a:dir=="right"
+                let l:cursor_pos_ns=[0,l:top_line,l:cols+1,0]
+                call setpos("'<",l:cursor_pos_ns)
+                let l:cursor_pos_ne=[0,l:bot_line,l:cole+2,0]
+                call setpos("'>",l:cursor_pos_ne)
+            endif
+
+            if a:dir=="left"
+                let l:cursor_pos_ns=[0,l:top_line,l:cols-1,0]
+                call setpos("'<",l:cursor_pos_ns)
+                let l:cursor_pos_ne=[0,l:bot_line,l:cole,0]
+                call setpos("'>",l:cursor_pos_ne)
+            endif
+
+            if a:dir=="top"
+               let l:cursor_pos_ns=[0,l:top_line-1,l:cols,0]
+               call setpos("'<",l:cursor_pos_ns)
+               let l:cursor_pos_ne=[0,l:bot_line-1,l:cole+1,0]
+               call setpos("'>",l:cursor_pos_ne) 
+            endif
+
+            if a:dir=="bottom"
+               let l:cursor_pos_ns=[0,l:top_line+1,l:cols,0]
+               call setpos("'<",l:cursor_pos_ns)
+               let l:cursor_pos_ne=[0,l:bot_line+1,l:cole+1,0]
+               call setpos("'>",l:cursor_pos_ne) 
+            endif
+            silent! normal! gv
+        endif
+    endif
+
+endfunction
+
+function! MVS(dir,cols,cole) range  "move visual selection
+    let l:cols=a:cols
+    let l:cole=a:cole
+    
+    let l:cl="."
+    let l:cln=line(l:cl)
+    let l:up=l:cln-1
+    let l:bottom=l:cln+1
+    let l:cld=getline(l:cl)
+
+    if a:dir=="left" || a:dir=="right"
+        if l:cols==1 && strpart(l:cld,0,1)==" " && a:dir=="left"
+            let l:cols=l:cols+1
+        endif
+
+        let l:linelength=strlen(l:cld)
+        let l:collength=l:cole-l:cols+1
+        let l:colcd=strpart(l:cld,l:cols-1,l:collength)
+        let l:colld=strpart(l:cld,0,l:cols-1)
+        let l:colrd=strpart(l:cld,l:cole,l:linelength-l:cole)
+        let l:colldlength=strlen(l:colld)
+        
+        if a:dir=="right"
+            let l:shiftchar=strpart(l:colrd,0,1)
+            if strlen(l:shiftchar)==0
+                let l:shiftchar=" "
+            endif
+            let l:colrd=strpart(l:cld,l:cole+1,l:linelength-l:cole)
+            let l:output= l:colld . l:shiftchar . l:colcd . l:colrd
+        endif
+
+        if a:dir=="left"
+            let l:shiftchar=strpart(l:colld,l:colldlength-1,1)
+            let l:colld=strpart(l:cld,0,l:colldlength-1)
+            let l:output= l:colld . l:colcd . l:shiftchar . l:colrd
+        endif
+        call setline(".",l:output)
+
+        if a:dir=="left"
+            let l:cursor_pos=[0,l:cln,l:cols-1,0]
+        endif
+
+        if a:dir=="right"
+            let l:cursor_pos=[0,l:cln,l:cole+1,0]
+        endif
+        call setpos(".",l:cursor_pos)
+    endif
+
+    if a:dir=="top" || a:dir=="bottom"
+        if a:dir=="top"
+            let l:exl=l:up
+        endif
+        if a:dir=="bottom"
+            let l:exl=l:bottom
+        endif
+
+        let l:cld=getline(l:cl)
+        let l:linelength=strlen(l:cld)
+        let l:collength=l:cole-l:cols+1
+        let l:colcd=strpart(l:cld,l:cols-1,l:collength)
+        let l:colld=strpart(l:cld,0,l:cols-1)
+        let l:colrd=strpart(l:cld,l:cole,l:linelength-l:cole)
+
+        let l:exld=getline(l:exl)
+        let l:exlinelength=strlen(l:exld)
+        let l:excollength=l:cole-l:cols+1
+        let l:excolcd=strpart(l:exld,l:cols-1,l:excollength)
+        let l:excolld=strpart(l:exld,0,l:cols-1)
+        let l:excolrd=strpart(l:exld,l:cole,l:exlinelength-l:cole)
+        
+        if strlen(l:excolcd) < strlen(l:colcd)
+            let l:excolcd=l:excolcd.repeat(" ",strlen(l:colcd)-strlen(l:excolcd))
+        endif
+        if strlen(l:excolld) < strlen(l:colld)
+            let l:excolld=l:excolld.repeat(" ",strlen(l:colld)-strlen(l:excolld))
+        endif
+
+        let l:ncld=l:colld . l:excolcd . l:colrd
+        let l:nexld=l:excolld . l:colcd . l:excolrd
+
+        call setline(l:cl,l:ncld)
+        call setline(l:exl,l:nexld)
+
+        if a:dir=="top"
+            let l:cursor_pos=[0,l:cln-1,l:cols,0]
+        endif
+
+        if a:dir=="bottom"
+            let l:cursor_pos=[0,l:cln+1,l:cols,0]
+        endif
+        call setpos(".",l:cursor_pos)
+
+    endif
+
+endfunction
+
+vnoremap <silent> <Leader>m :call VimCalC(1,"mul")<CR>
+vnoremap <silent> <Leader>s :call VimCalC(1,"sub")<CR>
+vnoremap <silent> <Leader>a :call VimCalC(1,"add")<CR>
+vnoremap <silent> <Leader>d :call VimCalC(1,"div")<CR>
+nnoremap <silent> <Leader>m :call VimCalC(0,"mul")<CR>
+nnoremap <silent> <Leader>s :call VimCalC(0,"sub")<CR>
+nnoremap <silent> <Leader>a :call VimCalC(0,"add")<CR>
+nnoremap <silent> <Leader>d :call VimCalC(0,"div")<CR>
+function! VimCalC(cond,oper) range
+
+    let l:wnr=bufwinnr(bufnr("Scratch"))
+    if !exists("g:VimCalC_res_subs")
+       let g:VimCalC_res_subs=0
+    endif
+    if !exists("g:VimCalC_SEASAW")
+        let g:VimCalC_SEASAW=0
+    endif
+
+    if a:cond==1
+        let l:sl=line("'<")
+        let l:ll=line("'>")
+        let l:clt1=virtcol("'<")
+        let l:clt2=virtcol("'>")
+        let l:cls=min([l:clt1,l:clt2])
+        let l:cle=max([l:clt1,l:clt2])-1
+    endif
+
+    if a:cond==0
+        let l:sl=line(".")
+        let l:ll=line(".")
+        let l:cls=0
+        let l:cle=virtcol("$")
+        let g:VimCalC_SEASAW=0
+    endif
+
+    let l:oper_map={
+       \ "add":"\+",
+       \ "sub":"\-",
+       \ "mul":"\*",
+       \ "div":"\/"
+       \ }
+
+    let l:scratch_buf=""
+    let l:oper=eval("l:oper_map.".a:oper)
+    let l:i=l:sl
+
+    let  g:VimCalC_res_subs_temp=g:VimCalC_res_subs
+
+    if bufname("%")=="Scratch"
+        let g:VimCalC_res_subs=1
+    endif
+
+    if g:VimCalC_SEASAW==1
+        let l:data=substitute(getreg('*'),nr2char(10)," ",'g')
+    endif
+
+    while l:i<=l:ll
+        if g:VimCalC_SEASAW==0
+            call setpos(".",[0,l:i,0,0])
+            let l:cld=getline(".")
+            "get only selected data
+            let l:cld=strpart(l:cld,l:cls-1,l:cle-l:cls+1)
+        else
+            let l:cld=l:data
+            let l:i=l:ll+1
+        endif    
+
+        let l:cld=substitute(l:cld,'^\s*\|\s*$',"",'g')
+        let l:cld=substitute(l:cld,'\s\s\+'," ",'g')
+        let l:lastassign=strridx(l:cld,"=")
+        if l:lastassign!=-1
+            let l:cld_temp=l:cld
+            let l:cld=strpart(l:cld_temp,l:lastassign+1)
+            let l:cld_temp=strpart(l:cld_temp,0,l:lastassign+1)
+        else
+            let l:cld_temp=""
+        endif
+
+        let l:mld=substitute(l:cld,' ',l:oper,'g')
+        let l:output=system("echo 'Akarshan Arora' | awk '{print ".l:mld."}'")
+        let l:output=substitute(l:output,'.$',"",'g')
+        let l:md=substitute(l:mld,'$',"=".l:output,'g')
+        let l:md=substitute(l:md,"'","",'g')
+        let l:output=l:cld_temp.l:md
+        let l:scratch_buf=l:scratch_buf." ".l:output
+        
+        "control substitution of result on same line
+        
+        if g:VimCalC_res_subs==1
+            call setline(".",l:output)
+            let l:cursorline=line('.')
+            let l:cursorcol=strlen(l:output)
+        endif
+        
+        let l:i=l:i+1
+    endwhile
+
+    if g:VimCalC_res_subs==0
+            let l:wnr=bufwinnr(bufnr("Scratch"))
+            if l:wnr==-1
+                vertical botright new Scratch
+                setlocal buftype=nofile bufhidden=wipe nobuflisted noswapfile nowrap
+                call setline(1,"##########\[VimCalC\]##########")
+                call setline(2,'')
+            else
+                execute l:wnr . 'wincmd w'
+  
+            endif
+
+            let l:buflines=line('$')
+            for l:out in split(l:scratch_buf,' ')
+                let l:buflines +=1
+                call setline(l:buflines,l:out)
+            endfor
+            let l:cursorline=line('$')
+            let l:cursorcol=strlen(l:out)
+    endif
+    call setpos(".",[0,l:cursorline,l:cursorcol,0])
+
+    let  g:VimCalC_res_subs=g:VimCalC_res_subs_temp
+endfunction
+
+noremap <silent> <F7> :<c-u>call Toggle_VimCalC_SEASAW()<CR>
+function! Toggle_VimCalC_SEASAW()
+    let g:VimCalC_SEASAW=g:VimCalC_SEASAW?0:1
+    echom "g:VimCalC_SEASAW=".g:VimCalC_SEASAW
+endfunction
+
+noremap <silent> <F10> :<c-u>call CheckFileExists()<CR>
+function! CheckFileExists()
+    let l:cc=virtcol(".")
+    let l:cl=line(".")
+    silent! normal! B
+    let l:sc=virtcol(".")
+    silent! normal! W
+    let l:ec=virtcol(".")
+    let l:el=line(".")
+    if l:el!=l:cl || virtcol('$')==l:ec
+        call setpos(".",[0,l:cl,0,0])
+        let l:ec=virtcol('$')
+        let l:len=l:ec-l:sc
+    else
+        let l:len=l:ec-l:sc-1
+    endif
+    let l:text=strpart(getline("."),l:sc-1,l:len)
+    let l:text=substitute(l:text,"\"","",'g')
+    let l:text=substitute(l:text,"\}","",'g')
+    let l:text=substitute(l:text,",","",'g')
+    call setpos(".",[0,l:cl,l:cc,0])
+    execute "!\\ls -ltr ".l:text
+endfunction
+
+function! GetChar() range
+    let l:start=1
+    while l:start<40
+        call setline(l:start,l:start." ".nr2char(l:start))
+        let l:start +=1
+    endwhile
+endfunction
+
+command! -complete=shellcmd -nargs=+ Gif call GrepInFiles(<f-args>)
+function! GrepInFiles(...) range
+    let l:files=substitute(getreg('*'),nr2char(10)," ",'g') 
+    let l:files=substitute(l:files,'\\'," ",'g')
+    let l:files=substitute(l:files,','," ",'g')
+    let l:srchString=a:000[0]
+    let l:args=join(a:000[1:]," ") 
+    if l:srchString!=""
+        call s:RunShellCommand("grep ".l:args." \"" . l:srchString ."\" ".l:files)
+    endif
+endfunction

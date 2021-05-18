@@ -1,0 +1,15 @@
+import os
+
+dest = os.environ['HOME']
+
+dirlist = [
+    '.vim',
+    '.vimrc',
+    '.gvimrc',
+]
+
+for d in dirlist:
+    print('removing: '+dest+'/'+d)
+    os.system('rm -rf '+dest+'/'+d)
+    print('soft linking: '+d+' '+dest+'/'+d)
+    os.system('ln -s '+os.getcwd()+'/'+d+' '+dest+'/'+d)
